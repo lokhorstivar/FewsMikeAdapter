@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<generalAdapterRun xmlns="http://www.wldelft.nl/fews" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.wldelft.nl/fews https://fewsdocs.deltares.nl/schemas/version1.0/generalAdapterRun.xsd">
+	<general>
+		<piVersion>1.8</piVersion>
+		<rootDir>$REGION_HOME$/modules/MIKE</rootDir>
+		<workDir>%ROOT_DIR%</workDir>
+		<exportDir>%ROOT_DIR%/Assam/piInputTimeSeries</exportDir>
+		<exportDataSetDir>%ROOT_DIR%</exportDataSetDir>
+		 <exportIdMap>IdExportMIKE</exportIdMap> 
+		<importDir>%ROOT_DIR%/Assam/piOutputTimeSeries</importDir>
+		<importIdMap>IdImportMIKE</importIdMap>
+		<dumpFileDir>$GA_DUMPFILEDIR$</dumpFileDir>
+		<dumpDir>%ROOT_DIR%/</dumpDir>
+		<diagnosticFile>%ROOT_DIR%/log/piDiagnostic.xml</diagnosticFile>
+		<missVal>-99</missVal>
+		<convertDatum>true</convertDatum>
+	</general>
+	<activities>
+		<startUpActivities>
+			<purgeActivity>
+				<filter>%ROOT_DIR%/input/*.*</filter>
+			</purgeActivity>
+			<purgeActivity>
+				<filter>%ROOT_DIR%/states/*.*</filter>
+			</purgeActivity>
+			<purgeActivity>
+				<filter>%ROOT_DIR%/log/*.*</filter>
+			</purgeActivity>
+			<purgeActivity>
+				<filter>%ROOT_DIR%/Assam/piOutputTimeSeries/*.*</filter>
+			</purgeActivity>
+			<purgeActivity>
+				<includeSubdirectories>true</includeSubdirectories>
+				<filter>%ROOT_DIR%/work/*.*</filter>
+			</purgeActivity>
+		</startUpActivities>
+		<exportActivities>
+			 <exportTimeSeriesActivity> 
+				 <exportFile>forcing.xml</exportFile> 
+				<timeSeriesSets>
+				<timeSeriesSet>
+					<moduleInstanceId>Meteo_Process_Operational_Grids</moduleInstanceId>
+					<valueType>scalar</valueType>
+					<parameterId>P.obs</parameterId>
+					<locationSetId>MIKEBasins</locationSetId>
+					<timeSeriesType>external historical</timeSeriesType>
+					<timeStep unit="hour" multiplier="3"/>
+					<relativeViewPeriod unit="day" start="-25" end="0"></relativeViewPeriod>
+					<readWriteMode>add originals</readWriteMode>
+				</timeSeriesSet>
+				<timeSeriesSet>
+					<moduleInstanceId>Meteo_Process_Operational_Grids</moduleInstanceId>
+					<valueType>scalar</valueType>
+					<parameterId>T.obs</parameterId>
+					<locationSetId>MIKEBasins</locationSetId>
+					<timeSeriesType>external historical</timeSeriesType>
+					<timeStep unit="hour" multiplier="1"/>
+					<relativeViewPeriod unit="day" start="-25" end="0"></relativeViewPeriod>
+					<readWriteMode>add originals</readWriteMode>
+				</timeSeriesSet>
+				<timeSeriesSet>
+					<moduleInstanceId>Meteo_Process_Operational_Grids</moduleInstanceId>
+					<valueType>scalar</valueType>
+					<parameterId>ET.obs</parameterId>
+					<locationSetId>MIKEBasins</locationSetId>
+					<timeSeriesType>external historical</timeSeriesType>
+					<timeStep unit="hour" multiplier="3"/>
+					<relativeViewPeriod unit="day" start="-25" end="0"></relativeViewPeriod>
+					<readWriteMode>add originals</readWriteMode>
+				</timeSeriesSet>
+			</timeSeriesSets>
+			</exportTimeSeriesActivity>
+		</exportActivities>
+		<executeActivities>
+		<executeActivity>
+				<description>Convert pixml to dfs0</description>
+				<command>
+					<executable>.venv/Scripts/python.exe</executable>
+				</command>
+				<arguments>
+					<argument>main.py</argument>
+					<argument>--forecast</argument>
+					<argument>settings.ini</argument>
+				</arguments>
+				<timeOut>120000</timeOut>
+				<ignoreDiagnostics>true</ignoreDiagnostics>
+			</executeActivity>
+		</executeActivities>
+		<importActivities>
+			<importTimeSeriesActivity>
+				<importFile>simulation_nam.xml</importFile>
+				<timeSeriesSets>
+					<timeSeriesSet>
+						<moduleInstanceId>run_mike_forecast</moduleInstanceId>
+						<valueType>scalar</valueType>
+						<parameterId>Q.sim</parameterId>
+						<locationSetId>MIKEBasins</locationSetId>
+						<timeSeriesType>simulated forecasting</timeSeriesType>
+						<timeStep unit="nonequidistant"/>
+						<readWriteMode>add originals</readWriteMode>
+					</timeSeriesSet>
+				</timeSeriesSets>
+			</importTimeSeriesActivity>
+			<importTimeSeriesActivity>
+				<importFile>simulation_mike11.xml</importFile>
+				<timeSeriesSets>
+					<timeSeriesSet>
+						<moduleInstanceId>run_mike_forecast</moduleInstanceId>
+						<valueType>scalar</valueType>
+						<parameterId>H.sim</parameterId>
+						<locationSetId>MIKENodes</locationSetId>
+						<timeSeriesType>simulated forecasting</timeSeriesType>
+						<timeStep unit="minute" multiplier="1"/>
+						<readWriteMode>add originals</readWriteMode>
+					</timeSeriesSet>
+				</timeSeriesSets>
+			</importTimeSeriesActivity>
+		</importActivities>
+	</activities>
+</generalAdapterRun>
