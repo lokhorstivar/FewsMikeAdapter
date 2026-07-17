@@ -29,7 +29,8 @@ def get_iteminfo(parameter: str, location: str) -> mikeio.ItemInfo:
         return mikeio.ItemInfo(
             name=location,
             itemtype=EUMType.Evaporation,
-            unit=EUMUnit.millimeter
+            unit=EUMUnit.millimeter,
+            data_value_type="StepAccumulated"
         )
     elif p in ["waterlevel", "h", "stage"]:
         return mikeio.ItemInfo(
