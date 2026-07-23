@@ -32,18 +32,14 @@ def main():
     )
 
     args = parser.parse_args()
+
     if args.forecast:
         args.prepare_dfs0 = True
         args.run_mike = True
         args.mike11_to_pixml = True
         args.mikenam_to_pixml = True
-    setup_logging()
 
     config = read_settings(args.settings)
-
-    #
-    # PIXML -> DFS0
-    #
 
     if args.prepare_dfs0:
 
@@ -57,10 +53,6 @@ def main():
                 pixml_file=sec.get("pixml_file"),
                 output_folder=sec.get("output_folder"),
             )
-
-    #
-    # Run MIKE+
-    #
 
     if args.run_mike:
 
@@ -96,10 +88,6 @@ def main():
                 administrated_hd_state=states.get("administrated_hd_state"),
             )
 
-    #
-    # MIKE11 -> PIXML
-    #
-
     if args.mike11_to_pixml:
 
         if "mike11_to_pixml" not in config:
@@ -112,10 +100,6 @@ def main():
                 res1d_file=sec.get("res1d_file"),
                 output_xml=sec.get("output_xml"),
             )
-
-    #
-    # MIKE NAM -> PIXML
-    #
 
     if args.mikenam_to_pixml:
 

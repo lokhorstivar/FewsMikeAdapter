@@ -29,7 +29,8 @@ def get_iteminfo(parameter: str, location: str) -> mikeio.ItemInfo:
         return mikeio.ItemInfo(
             name=location,
             itemtype=EUMType.Evaporation,
-            unit=EUMUnit.millimeter
+            unit=EUMUnit.millimeter,
+            data_value_type="StepAccumulated"
         )
     elif p in ["waterlevel", "h", "stage"]:
         return mikeio.ItemInfo(
@@ -85,7 +86,7 @@ def pixml_to_dfs0(pixml_file: str, output_folder: str) -> None:
         dataarrays = []
         for location in df_parameter.columns:
             iteminfo = get_iteminfo(parameter, location)
-            logging.info(f"  {location} -> {iteminfo.type} / {iteminfo.unit}")
+            # logging.info(f"  {location} -> {iteminfo.type} / {iteminfo.unit}")
             da = mikeio.DataArray(
                 data=df_parameter[location].values,
                 time=df_parameter.index,
