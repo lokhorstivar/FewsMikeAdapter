@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fews-mike-adapter"
+version = "0.1.0"
+description = "Delft-FEWS General Adapter for MIKE+ (MIKE 1D / NAM): PI-XML <-> DFS0/res1d conversion and model run"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Ivar Lokhorst" }]
+dependencies = [
+    "numpy",
+    "pandas",
+    "mikeio",
+    "mikeio1d",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+run_mike_adapter = "fews_mike_adapter.cli:main"
+fews-mike-adapter = "fews_mike_adapter.cli:main"
+
+[project.urls]
+Repository = "https://github.com/lokhorstivar/FewsMikeAdapter"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+fews_mike_adapter = ["py.typed"]

@@ -6,7 +6,7 @@
 		<workDir>%ROOT_DIR%</workDir>
 		<exportDir>%ROOT_DIR%/Assam/piInputTimeSeries</exportDir>
 		<exportDataSetDir>%ROOT_DIR%</exportDataSetDir>
-		 <exportIdMap>IdExportMIKE</exportIdMap> 
+		<exportIdMap>IdExportMIKE</exportIdMap> 
 		<importDir>%ROOT_DIR%/Assam/piOutputTimeSeries</importDir>
 		<importIdMap>IdImportMIKE</importIdMap>
 		<dumpFileDir>$GA_DUMPFILEDIR$</dumpFileDir>
@@ -30,63 +30,94 @@
 				<filter>%ROOT_DIR%/Assam/piOutputTimeSeries/*.*</filter>
 			</purgeActivity>
 			<purgeActivity>
+				<filter>%ROOT_DIR%/Assam/Test FF_2025_2025_2025_2025_m1d - Result Files/*.*</filter>
+			</purgeActivity>
+			<purgeActivity>
+				<filter>%ROOT_DIR%/Assam/InputStates/*.*</filter>
+			</purgeActivity>
+			<purgeActivity>
+				<filter>%ROOT_DIR%/Assam/OutputStates/*.*</filter>
+			</purgeActivity>
+			<purgeActivity>
 				<includeSubdirectories>true</includeSubdirectories>
 				<filter>%ROOT_DIR%/work/*.*</filter>
 			</purgeActivity>
 		</startUpActivities>
 		<exportActivities>
+			<exportStateActivity>
+				<moduleInstanceId>run_mike_forecast</moduleInstanceId>
+				<stateExportDir>%ROOT_DIR%/Assam/InputStates</stateExportDir>
+				<stateSelection>
+					<warmState>
+						<stateSearchPeriod unit="day" start="3" end="5" startOverrulable="true" />
+					</warmState>
+				</stateSelection>
+			</exportStateActivity>
 			 <exportTimeSeriesActivity> 
 				 <exportFile>forcing.xml</exportFile> 
 				<timeSeriesSets>
 				<timeSeriesSet>
-					<moduleInstanceId>Meteo_Process_Operational_Grids</moduleInstanceId>
+					<moduleInstanceId>Process_model_grids_to_catchments</moduleInstanceId>
 					<valueType>scalar</valueType>
 					<parameterId>P.obs</parameterId>
+					<qualifierId>model</qualifierId>
 					<locationSetId>MIKEBasins</locationSetId>
-					<timeSeriesType>external historical</timeSeriesType>
-					<timeStep unit="hour" multiplier="3"/>
-					<relativeViewPeriod unit="day" start="-25" end="0"></relativeViewPeriod>
-					<readWriteMode>add originals</readWriteMode>
-				</timeSeriesSet>
-				<timeSeriesSet>
-					<moduleInstanceId>Meteo_Process_Operational_Grids</moduleInstanceId>
-					<valueType>scalar</valueType>
-					<parameterId>T.obs</parameterId>
-					<locationSetId>MIKEBasins</locationSetId>
-					<timeSeriesType>external historical</timeSeriesType>
+					<timeSeriesType>external forecasting</timeSeriesType>
 					<timeStep unit="hour" multiplier="1"/>
-					<relativeViewPeriod unit="day" start="-25" end="0"></relativeViewPeriod>
-					<readWriteMode>add originals</readWriteMode>
+					<relativeViewPeriod unit="day" start="-10" end="5"/>
+					<readWriteMode>read complete forecast</readWriteMode>
 				</timeSeriesSet>
 				<timeSeriesSet>
-					<moduleInstanceId>Meteo_Process_Operational_Grids</moduleInstanceId>
+					<moduleInstanceId>Process_model_grids_to_catchments</moduleInstanceId>
 					<valueType>scalar</valueType>
-					<parameterId>ET.obs</parameterId>
+					<parameterId>T.forecast</parameterId>
+					<qualifierId>model</qualifierId>
 					<locationSetId>MIKEBasins</locationSetId>
-					<timeSeriesType>external historical</timeSeriesType>
-					<timeStep unit="hour" multiplier="3"/>
-					<relativeViewPeriod unit="day" start="-25" end="0"></relativeViewPeriod>
-					<readWriteMode>add originals</readWriteMode>
+					<timeSeriesType>external forecasting</timeSeriesType>
+					<timeStep unit="hour" multiplier="1"/>
+					<relativeViewPeriod unit="day" start="-10" end="5"/>
+					<readWriteMode>read complete forecast</readWriteMode>
+				</timeSeriesSet>
+				<timeSeriesSet>
+					<moduleInstanceId>Process_model_grids_to_catchments</moduleInstanceId>
+					<valueType>scalar</valueType>
+					<parameterId>PET.forecast</parameterId>
+					<qualifierId>model</qualifierId>
+					<locationSetId>MIKEBasins</locationSetId>
+					<timeSeriesType>external forecasting</timeSeriesType>
+					<timeStep unit="hour" multiplier="1"/>
+					<relativeViewPeriod unit="day" start="-10" end="5"/>
+					<readWriteMode>read complete forecast</readWriteMode>
 				</timeSeriesSet>
 			</timeSeriesSets>
 			</exportTimeSeriesActivity>
 		</exportActivities>
 		<executeActivities>
 		<executeActivity>
-				<description>Convert pixml to dfs0</description>
+				<description>MIKE+ forecast: PI-XML to DFS0, run MIKE+, results to PI-XML</description>
 				<command>
-					<executable>.venv/Scripts/python.exe</executable>
+					<executable>$MIKE_ADAPTER_EXE$</executable>
 				</command>
 				<arguments>
-					<argument>main.py</argument>
 					<argument>--forecast</argument>
-					<argument>settings.ini</argument>
 				</arguments>
-				<timeOut>120000</timeOut>
+				<timeOut>1200000</timeOut>
 				<ignoreDiagnostics>true</ignoreDiagnostics>
 			</executeActivity>
 		</executeActivities>
 		<importActivities>
+			<importStateActivity>
+			<stateImportDir>%ROOT_DIR%/Assam/OutputStates</stateImportDir>
+				<stateFile>
+					<importFile>nam_state.res1d</importFile>
+					<relativeExportFile>nam_state.res1d</relativeExportFile>
+				</stateFile>
+				<stateFile>
+					<importFile>state_1d.res1d</importFile>
+					<relativeExportFile>state_1d.res1d</relativeExportFile>
+				</stateFile>
+				<expiryTime unit="day" multiplier="5"/>
+			</importStateActivity>
 			<importTimeSeriesActivity>
 				<importFile>simulation_nam.xml</importFile>
 				<timeSeriesSets>

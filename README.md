@@ -1,37 +1,113 @@
-# FewsMikeAdapter
-Adapter to start a Mike+ (mike nam + mike11) simulation from fews. The adapter focusses on 4 key steps
-- Convert fews pixml timeseries to dfs0 files for forcings
-- Run Mike+ model including state management
-- Convert Mike11 outcomes to pixml for FEWS ingestion
-- Convert MikeNam outcomes to pixml for FEWS ingestion
+# fews-mike-adapter
 
-The adapter works by calling `main.py` followed by multiple arguments. First of all which functions to execute. You can chose from:
-- --prepare_dfs0
-- --run_mike
-- --mikenam_to_pixml
-- --mike11_to_pixml
-- --forecast
+Delft-FEWS General Adapter for MIKE+ models (MIKE 1D HD + NAM).
 
-The first four functions will call a part of the workflow, the `--forecast` flag runs all modules consequtively. To provide the adapter with the required information a `settings.ini` should be provided. The full comment then looks like this: `python main.py --forecast settings.ini`. An example of the settings.ini is provided in example_config_files.
+One command runs the whole forecast chain:
 
-prepare_dfs0
-=============
-The prepare_dfs0 function takes a FEWS PIXML file as input and turns this into one or multiple dfs0 files. Every unique parameter will be placed in its own dfs0 file. So, for example, if the PIXML contains precipitation and evaporation data, it will be converted into precipitation.dfs0 and evaporation.dfs0. The Mike+ model should be configured to direct to the output files of this function. So if the function creates `input\precipitation.dfs0`, the mike timeseries should be mapped to this file. To ensure the file can be used, the timeseries/basin id's should be the same. The method has only been tested for catchment timeseries which are the boundary conditions for the NAM model. In Delft-FEWS you create basin averaged forcing timeseries for the same basins that are used in the Mike+ model.
+1. **prepare_dfs0** – FEWS PI-XML forcing (`forcing.xml`) → one DFS0 per parameter
+2. **run_mike** – sets the simulation period (from the DFS0 files) and hot/cold start in the
+   MIKE+ `.sqlite` project, runs `DHI.MIKEPlus.EngineShell.exe`, copies the result states
+3. **mike11_to_pixml** – HD node water levels (`res1d`) → PI-XML (`H.sim`)
+4. **mikenam_to_pixml** – NAM catchment runoff (`res1d`) → PI-XML (`Q.sim`)
 
-run_mike
-==========
-The run_mike function handles states and executes the actual mike+ simulation. To be able to run this function, all input files (forcings etc.) should be in place and only the state configuration may be updated (optional). In the ini, point to the Mike+ executable and the model sqlite. The adapter assumes that temperature, evaporation and precipitation are all provided as forcings. It will check these three dfs0 files to set the start and end date of the simulation based on available timeseries. 
+## Installation
 
-If states are included there are two different options:
-1. A warm state was exported. In this case, the module will configure the simulation to look up the time0 in the simulation in the state file and take that conditions as the initial conditions. 
-2. A cold state was exported. For the adapter to know that it is dealing with a cold state, the states should be stored as `Cold_`+state name in the coldstates folder of Fews. The precise naming is important because the adapter uses the `Cold_` prefix to recognize it has to run a different workflow. If a cold state is used, the simulation likely cannot look up its actual t0 in the cold state file. Therefore, a specific date has to be prescribed and Mike will take the hydraulic and hydrological conditions at that moment as its initial state.
+Install once into a dedicated virtual environment, outside the model folder
+(the model folder then only holds `settings.ini` and the MIKE+ model):
 
-After the simulation is finished, the states will be moved to the outputstates folder which Delft-FEWS can utilize to ingest the states. Please note that the hydraulic results and the RDII catchment results should be prepared for archiving (not the regular catchment results).
+```bat
+cd <REGION_HOME>\Modules\python
+python -m venv mike_adapter_env
+mike_adapter_env\Scripts\python.exe -m pip install "git+https://github.com/lokhorstivar/FewsMikeAdapter.git"
+```
 
-mikenam_to_pixml
-=================
-mikenam_to_pixml converts the hydraulic (1d) outcome of the model into a PIXML file to be ingested into delft-fews. 
+This creates the executable `mike_adapter_env\Scripts\run_mike_adapter.exe`.
 
-mike11_to_pixml
-=================
-mike11_to_pixml converts the hydrological outcome of the model into a PIXML file to be ingested into delft-fews. 
+A specific version (git tag) or branch:
+
+```bat
+mike_adapter_env\Scripts\python.exe -m pip install "git+https://github.com/lokhorstivar/FewsMikeAdapter.git@v0.1.0"
+```
+
+Update to the latest version:
+
+```bat
+mike_adapter_env\Scripts\python.exe -m pip install --upgrade --force-reinstall "git+https://github.com/lokhorstivar/FewsMikeAdapter.git"
+```
+
+For a private repository use `git+https://<token>@github.com/...`, or `git+ssh://git@github.com/...`.
+Git must be installed on the machine.
+
+## Usage
+
+Run from the model folder (the folder containing `settings.ini`):
+
+```bat
+run_mike_adapter --forecast
+run_mike_adapter --prepare_dfs0 --run_mike
+run_mike_adapter --forecast D:\models\Assam\settings.ini
+python -m fews_mike_adapter --forecast
+```
+
+Without a settings argument, `settings.ini` in the current working directory is used.
+`fews-mike-adapter` is installed as an alias of `run_mike_adapter`.
+
+| Flag | Step |
+|---|---|
+| `--prepare_dfs0` | PI-XML → DFS0 |
+| `--run_mike` | update project, run MIKE+, copy states |
+| `--mike11_to_pixml` | HD results → PI-XML |
+| `--mikenam_to_pixml` | NAM results → PI-XML |
+| `--forecast` | all four steps |
+| `--debug` | verbose logging |
+
+The exit code is 0 on success and 1 on any error, so FEWS marks the run as failed.
+
+## settings.ini
+
+See [`examples/settings.ini`](examples/settings.ini). **Relative paths are resolved against the
+folder of `settings.ini`**, so the adapter works independently of the working directory.
+`mikeplus_exe` may be an absolute path, a path relative to `settings.ini`, or a name on `PATH`.
+
+### Cold start
+
+If the state input folder contains files prefixed `Cold_` (exported by FEWS as cold state),
+the prefix is removed and the project is set to start from `coldstart_date_time`.
+Otherwise a warm start from the exported hot-start files is configured.
+
+## FEWS configuration
+
+Define the executable once in `global.properties`:
+
+```properties
+MIKE_ADAPTER_EXE=%REGION_HOME%/Modules/python/mike_adapter_env/Scripts/run_mike_adapter.exe
+```
+
+In `ModuleConfigFiles/.../run_mike_forecast.xml` (General Adapter, `workDir` = model folder):
+
+```xml
+<executeActivity>
+    <command>
+        <executable>$MIKE_ADAPTER_EXE$</executable>
+    </command>
+    <arguments>
+        <argument>--forecast</argument>
+    </arguments>
+    <timeOut>1200000</timeOut>
+</executeActivity>
+```
+
+See [`examples/run_mike_forecast_executeActivity.xml`](examples/run_mike_forecast_executeActivity.xml).
+
+## Python API
+
+```python
+from fews_mike_adapter import pixml_to_dfs0, run_mike_project, mike11_to_pixml, mikenam_to_pixml
+```
+
+## Development
+
+```bat
+python -m pip install -e .[dev]
+pytest
+```

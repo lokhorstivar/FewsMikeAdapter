@@ -1,14 +1,40 @@
-import logging
+"""Shared helpers for writing FEWS PI-XML time series."""
+
 import xml.etree.ElementTree as ET
 
 import pandas as pd
 
+PI = "http://www.wldelft.nl/fews/PI"
+XSI = "http://www.w3.org/2001/XMLSchema-instance"
 MISSVAL = -99.0
+
+ET.register_namespace("", PI)
+ET.register_namespace("xsi", XSI)
+
+
+def new_pi_timeseries_root(time_zone: str = "0.0") -> ET.Element:
+    """Create an empty PI <TimeSeries> root element (PI version 1.8)."""
+    root = ET.Element(
+        f"{{{PI}}}TimeSeries",
+        {
+            "version": "1.8",
+            f"{{{XSI}}}schemaLocation": (
+                "http://www.wldelft.nl/fews/PI "
+                "https://fewsdocs.deltares.nl/schemas/version1.0/pi-schemas/pi_timeseries.xsd"
+            ),
+        },
+    )
+    ET.SubElement(root, f"{{{PI}}}timeZone").text = time_zone
+    return root
+
+
+def write_pi_xml(root: ET.Element, output_xml: str) -> None:
+    """Write a PI-XML tree to file (UTF-8 with XML declaration)."""
+    ET.ElementTree(root).write(output_xml, encoding="UTF-8", xml_declaration=True)
 
 
 def add_xml_series(root, df, parameter_id, units, series_type="instantaneous"):
-    PI = "http://www.wldelft.nl/fews/PI"
-
+    """Add one PI <series> per column of ``df`` (time index) to ``root``."""
     if len(df.index) < 2:
         timestep_seconds = 3600
     else:

@@ -1,0 +1,16 @@
+<!-- executeActivity for ModuleConfigFiles/Mike/run_mike_forecast.xml.
+     The working directory (workDir = %ROOT_DIR%) contains settings.ini, so no argument is needed.
+     $MIKE_ADAPTER_EXE$ is defined in global.properties, e.g.
+       MIKE_ADAPTER_EXE=%REGION_HOME%/Modules/python/mike_adapter_env/Scripts/run_mike_adapter.exe
+-->
+<executeActivity>
+	<description>MIKE+ forecast: PI-XML -> DFS0, run MIKE+, results -> PI-XML</description>
+	<command>
+		<executable>$MIKE_ADAPTER_EXE$</executable>
+	</command>
+	<arguments>
+		<argument>--forecast</argument>
+	</arguments>
+	<timeOut>1200000</timeOut>
+	<ignoreDiagnostics>true</ignoreDiagnostics>
+</executeActivity>
