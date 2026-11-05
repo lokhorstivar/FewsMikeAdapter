@@ -54,6 +54,8 @@ def read_pixml(pixml_file: str) -> dict:
             continue
         parameter = header.find("pi:parameterId", NS).text
         location = header.find("pi:locationId", NS).text
+        miss_el = header.find("pi:missVal", NS)
+        miss_val = float(miss_el.text) if miss_el is not None and miss_el.text else None
 
         records = []
         for event in series.findall("pi:event", NS):
@@ -64,6 +66,8 @@ def read_pixml(pixml_file: str) -> dict:
             try:
                 value = float(value)
             except ValueError:
+                value = np.nan
+            if miss_val is not None and value == miss_val:
                 value = np.nan
             records.append([timestamp, value])
         if not records:
@@ -78,6 +82,29 @@ def read_pixml(pixml_file: str) -> dict:
     }
 
 
+def fill_gaps(parameter: str, df: "pd.DataFrame") -> "pd.DataFrame":
+    """Replace missing values: MIKE cannot handle gaps/missing values in the forcing.
+
+    Rainfall: missing -> 0. Temperature/evaporation: interpolate in time, then
+    forward/backward fill; columns without any data get the mean of the other locations.
+    """
+    n_missing = int(df.isna().sum().sum())
+    if n_missing == 0:
+        return df
+    p = parameter.lower()
+    if p in ["precipitation", "rainfall", "rain", "precip"]:
+        df = df.fillna(0.0)
+        how = "0"
+    else:
+        df = df.interpolate(method="time", limit_area="inside").ffill().bfill()
+        if df.isna().any().any():
+            df = df.apply(lambda c: c.fillna(df.mean(axis=1)))
+        df = df.fillna(0.0)
+        how = "interpolation / nearest value"
+    logger.warning(f"{parameter}: {n_missing} missing values filled with {how}")
+    return df
+
+
 def pixml_to_dfs0(pixml_file: str, output_folder: str) -> list:
     """Convert a PI-XML file to DFS0 files in ``output_folder``.
 
@@ -90,6 +117,7 @@ def pixml_to_dfs0(pixml_file: str, output_folder: str) -> list:
     written = []
     for parameter, df_parameter in read_pixml(pixml_file).items():
         logger.info(f"Processing parameter: {parameter}")
+        df_parameter = fill_gaps(parameter, df_parameter)
         dataarrays = [
             mikeio.DataArray(
                 data=df_parameter[location].values,
