@@ -4,8 +4,10 @@ import logging
 import os
 import xml.etree.ElementTree as ET
 
+import mikeio
 import numpy as np
 import pandas as pd
+from mikeio import EUMType, EUMUnit
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +16,6 @@ NS = {"pi": "http://www.wldelft.nl/fews/PI"}
 
 def get_iteminfo(parameter: str, location: str):
     """Return a mikeio.ItemInfo based on parameter and location."""
-    import mikeio
-    from mikeio import EUMType, EUMUnit
-
     p = parameter.lower()
     if p in ["precipitation", "rainfall", "rain", "precip"]:
         return mikeio.ItemInfo(
@@ -111,8 +110,6 @@ def pixml_to_dfs0(pixml_file: str, output_folder: str) -> list:
     One ``<parameterId>.dfs0`` is written per parameter, with one item per location.
     Returns the list of written files.
     """
-    import mikeio
-
     os.makedirs(output_folder, exist_ok=True)
     written = []
     for parameter, df_parameter in read_pixml(pixml_file).items():

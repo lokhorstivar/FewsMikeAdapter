@@ -30,7 +30,10 @@
 				<filter>%ROOT_DIR%/Assam/piOutputTimeSeries/*.*</filter>
 			</purgeActivity>
 			<purgeActivity>
-				<filter>%ROOT_DIR%/Assam/Test FF_2025_2025_2025_2025_m1d - Result Files/*.*</filter>
+				<filter>%ROOT_DIR%/Assam/Brahmaputra_Jaxa_Survey_m1d - Result Files/*.*</filter>
+			</purgeActivity>
+			<purgeActivity>
+				<filter>%ROOT_DIR%/Assam/piInputTimeSeries/DA/*.*</filter>
 			</purgeActivity>
 			<purgeActivity>
 				<filter>%ROOT_DIR%/Assam/InputStates/*.*</filter>
@@ -47,9 +50,11 @@
 			<exportStateActivity>
 				<moduleInstanceId>run_mike_forecast</moduleInstanceId>
 				<stateExportDir>%ROOT_DIR%/Assam/InputStates</stateExportDir>
+				<!-- States are stored at T0 of the run that made them (see importStateActivity): use the state of a
+				     run 0-2 days before T0. Its file covers that run's -10 to +5 days, which includes this run's start. -->
 				<stateSelection>
 					<warmState>
-						<stateSearchPeriod unit="day" start="3" end="5" startOverrulable="true" />
+						<stateSearchPeriod unit="day" start="-2" end="0" startOverrulable="true" />
 					</warmState>
 				</stateSelection>
 			</exportStateActivity>
@@ -59,46 +64,76 @@
 				<timeSeriesSet>
 					<moduleInstanceId>Process_model_grids_to_catchments</moduleInstanceId>
 					<valueType>scalar</valueType>
-					<parameterId>P.obs</parameterId>
+					<parameterId>P.model</parameterId>
 					<qualifierId>model</qualifierId>
 					<locationSetId>MIKEBasins</locationSetId>
-					<timeSeriesType>external forecasting</timeSeriesType>
+					<timeSeriesType>external historical</timeSeriesType>
 					<timeStep unit="hour" multiplier="1"/>
 					<relativeViewPeriod unit="day" start="-10" end="5"/>
-					<readWriteMode>read complete forecast</readWriteMode>
+					<readWriteMode>read only</readWriteMode>
 				</timeSeriesSet>
 				<timeSeriesSet>
 					<moduleInstanceId>Process_model_grids_to_catchments</moduleInstanceId>
 					<valueType>scalar</valueType>
-					<parameterId>T.forecast</parameterId>
+					<parameterId>T.model</parameterId>
 					<qualifierId>model</qualifierId>
 					<locationSetId>MIKEBasins</locationSetId>
-					<timeSeriesType>external forecasting</timeSeriesType>
+					<timeSeriesType>external historical</timeSeriesType>
 					<timeStep unit="hour" multiplier="1"/>
 					<relativeViewPeriod unit="day" start="-10" end="5"/>
-					<readWriteMode>read complete forecast</readWriteMode>
+					<readWriteMode>read only</readWriteMode>
 				</timeSeriesSet>
 				<timeSeriesSet>
 					<moduleInstanceId>Process_model_grids_to_catchments</moduleInstanceId>
 					<valueType>scalar</valueType>
-					<parameterId>PET.forecast</parameterId>
+					<parameterId>PET.model</parameterId>
 					<qualifierId>model</qualifierId>
 					<locationSetId>MIKEBasins</locationSetId>
-					<timeSeriesType>external forecasting</timeSeriesType>
+					<timeSeriesType>external historical</timeSeriesType>
 					<timeStep unit="hour" multiplier="1"/>
 					<relativeViewPeriod unit="day" start="-10" end="5"/>
-					<readWriteMode>read complete forecast</readWriteMode>
+					<readWriteMode>read only</readWriteMode>
 				</timeSeriesSet>
 			</timeSeriesSets>
 			</exportTimeSeriesActivity>
+			<!-- Observed water levels for the MIKE+ data assimilation (one DFS0 per station is written by the adapter) -->
+			<exportTimeSeriesActivity>
+				<exportFile>observations.xml</exportFile>
+				<timeSeriesSets>
+					<timeSeriesSet>
+						<moduleInstanceId>Import_Telemetry</moduleInstanceId>
+						<valueType>scalar</valueType>
+						<parameterId>H.obs</parameterId>
+						<locationSetId>MIKE_DA_Stations</locationSetId>
+						<timeSeriesType>external historical</timeSeriesType>
+						<timeStep unit="hour"/>
+						<relativeViewPeriod unit="day" start="-10" end="0"/>
+						<readWriteMode>read only</readWriteMode>
+					</timeSeriesSet>
+				</timeSeriesSets>
+			</exportTimeSeriesActivity>
+			<!-- River and chainage of the MIKE result points, read by the adapter (step result_points_to_pixml) -->
+			<exportLocationAttributesCsvActivity>
+				<exportFile>mike_result_points.csv</exportFile>
+				<locationSetId>MIKE_ResultPoints</locationSetId>
+				<locationIdColumn columnName="location_id"/>
+				<attributeColumn columnName="river" attributeId="River"/>
+				<attributeColumn columnName="chainage" attributeId="Chainage"/>
+			</exportLocationAttributesCsvActivity>
+			<!-- Run file: its time0 is used as the time of forecast of the data assimilation -->
+			<exportRunFileActivity>
+				<exportFile>%ROOT_DIR%/Assam/piInputTimeSeries/run_info.xml</exportFile>
+			</exportRunFileActivity>
 		</exportActivities>
 		<executeActivities>
 		<executeActivity>
-				<description>MIKE+ forecast: PI-XML to DFS0, run MIKE+, results to PI-XML</description>
+				<description>Convert pixml to dfs0</description>
 				<command>
-					<executable>$MIKE_ADAPTER_EXE$</executable>
+					<executable>$REGION_HOME$/Modules/python/BinPython/python.exe</executable>
 				</command>
 				<arguments>
+					<argument>-m</argument>
+					<argument>fews_mike_adapter</argument>
 					<argument>--forecast</argument>
 				</arguments>
 				<timeOut>1200000</timeOut>
@@ -106,16 +141,15 @@
 			</executeActivity>
 		</executeActivities>
 		<importActivities>
+			<!-- The adapter writes the states as <name>_<T0 yyyyMMdd_HHmmss>.res1d, so FEWS stores them at T0
+			     (not at the end of the run). Each file is the whole result of this run; on the next warm start
+			     MIKE takes the time step at that run's simulation start from it. -->
 			<importStateActivity>
-			<stateImportDir>%ROOT_DIR%/Assam/OutputStates</stateImportDir>
-				<stateFile>
-					<importFile>nam_state.res1d</importFile>
-					<relativeExportFile>nam_state.res1d</relativeExportFile>
-				</stateFile>
-				<stateFile>
-					<importFile>state_1d.res1d</importFile>
-					<relativeExportFile>state_1d.res1d</relativeExportFile>
-				</stateFile>
+				<stateImportDir>%ROOT_DIR%/Assam/OutputStates</stateImportDir>
+				<stateFileDateTimePattern>'nam_state_'yyyyMMdd_HHmmss'.res1d'</stateFileDateTimePattern>
+				<relativeExportFile>nam_state.res1d</relativeExportFile>
+				<stateFileDateTimePattern>'state_1d_'yyyyMMdd_HHmmss'.res1d'</stateFileDateTimePattern>
+				<relativeExportFile>state_1d.res1d</relativeExportFile>
 				<expiryTime unit="day" multiplier="5"/>
 			</importStateActivity>
 			<importTimeSeriesActivity>
@@ -132,16 +166,26 @@
 					</timeSeriesSet>
 				</timeSeriesSets>
 			</importTimeSeriesActivity>
+			<!-- MIKE results at the result points (locationSet MIKE_ResultPoints) -->
 			<importTimeSeriesActivity>
-				<importFile>simulation_mike11.xml</importFile>
+				<importFile>simulation_result_points.xml</importFile>
 				<timeSeriesSets>
 					<timeSeriesSet>
 						<moduleInstanceId>run_mike_forecast</moduleInstanceId>
 						<valueType>scalar</valueType>
 						<parameterId>H.sim</parameterId>
-						<locationSetId>MIKENodes</locationSetId>
+						<locationSetId>MIKE_ResultPoints</locationSetId>
 						<timeSeriesType>simulated forecasting</timeSeriesType>
-						<timeStep unit="minute" multiplier="1"/>
+						<timeStep unit="hour" multiplier="1"/>
+						<readWriteMode>add originals</readWriteMode>
+					</timeSeriesSet>
+					<timeSeriesSet>
+						<moduleInstanceId>run_mike_forecast</moduleInstanceId>
+						<valueType>scalar</valueType>
+						<parameterId>Q.sim</parameterId>
+						<locationSetId>MIKE_ResultPoints</locationSetId>
+						<timeSeriesType>simulated forecasting</timeSeriesType>
+						<timeStep unit="hour" multiplier="1"/>
 						<readWriteMode>add originals</readWriteMode>
 					</timeSeriesSet>
 				</timeSeriesSets>

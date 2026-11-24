@@ -1,5 +1,7 @@
 import pandas as pd
 
+from fews_mike_adapter.cli import build_parser
+from fews_mike_adapter.config import read_settings, resolve_path
 from fews_mike_adapter.pixml_to_dfs0 import fill_gaps, read_pixml
 from fews_mike_adapter.utils import add_xml_series, new_pi_timeseries_root, write_pi_xml
 
@@ -23,8 +25,6 @@ def test_roundtrip_pixml(tmp_path):
 
 
 def test_settings_paths_relative_to_ini(tmp_path):
-    from fews_mike_adapter.config import read_settings, resolve_path
-
     ini = tmp_path / "settings.ini"
     ini.write_text("[pixml_to_dfs0]\npixml_file = Assam/forcing.xml\n")
     cfg = read_settings(str(ini))
@@ -32,8 +32,6 @@ def test_settings_paths_relative_to_ini(tmp_path):
 
 
 def test_cli_default_settings():
-    from fews_mike_adapter.cli import build_parser
-
     args = build_parser().parse_args(["--forecast"])
     assert args.settings == "settings.ini" and args.forecast
 
